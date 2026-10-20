@@ -1,0 +1,17 @@
+services:
+  mongodb:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - pitchiq-mongo:/data/db
+      - ./database/mongodb-init.js:/docker-entrypoint-initdb.d/01-pitchiq-indexes.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pitchiq-mongo:

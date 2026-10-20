@@ -1,0 +1,21 @@
+{
+  "name": "pitchiq",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": ["apps/web", "apps/api"],
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c blue,green \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace @pitchiq/api",
+    "dev:web": "npm run dev --workspace @pitchiq/web",
+    "build": "npm run build --workspace @pitchiq/api && npm run build --workspace @pitchiq/web",
+    "test": "npm run test --workspace @pitchiq/api && npm run test --workspace @pitchiq/web",
+    "lint": "npm run lint --workspace @pitchiq/api && npm run lint --workspace @pitchiq/web",
+    "benchmark": "node --env-file-if-exists=.env scripts/benchmark.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
