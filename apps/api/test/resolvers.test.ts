@@ -62,6 +62,21 @@ describe('GraphQL resolvers', () => {
     await expect(resolvers.Query.matches(undefined, { status: 'FINISHED' }, context)).resolves.toHaveLength(3)
   })
 
+  it('reports live provider source after provider data has been synchronized to Oracle', async () => {
+    const repository: FootballRepository = {
+      ...createTestRepository(),
+      mode: 'oracle',
+    }
+    const context = createContext(repository)
+    context.providerRepository.source = 'football-data.org v4 · live'
+    context.providerRepository.lastSyncedAt = '2026-10-22T17:42:31.152Z'
+    const resolvers = createResolvers()
+    await expect(resolvers.Query.dataHealth(undefined, undefined, context)).resolves.toMatchObject({
+      storageMode: 'oracle',
+      source: 'football-data.org v4 · live',
+    })
+  })
+
   it('rejects same-team and invalid-status query arguments', async () => {
     const context = createContext()
     const resolvers = createResolvers()

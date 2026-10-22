@@ -6,7 +6,7 @@ import './index.css'
 import App from './App.tsx'
 
 const client = new ApolloClient({
-  link: new HttpLink({ uri: import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:4000/graphql' }),
+  link: new HttpLink({ uri: import.meta.env.VITE_GRAPHQL_URL || '/graphql' }),
   cache: new InMemoryCache(),
 })
 

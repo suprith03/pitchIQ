@@ -87,6 +87,25 @@ async function start() {
         syncError = providerError instanceof Error ? providerError.message : String(providerError)
       }
     }
+  } else {
+    try {
+      const requestedYear = process.env.FOOTBALL_DATA_SEASON ? Number(process.env.FOOTBALL_DATA_SEASON) : undefined
+      const cached = requestedYear === undefined
+        ? await mongo.getLatestSeasonSnapshot(process.env.FOOTBALL_DATA_COMPETITION ?? 'PL')
+        : await mongo.getSeasonSnapshot(process.env.FOOTBALL_DATA_COMPETITION ?? 'PL', requestedYear)
+      if (cached) {
+        providerRepository.loadSnapshot(cached, 'football-data.org v4 · persisted MongoDB snapshot')
+        activeSnapshot = cached
+        lastSyncedAt = cached.syncedAt
+        dataSource = providerRepository.source
+      } else {
+        dataSource = 'Oracle Database · provider snapshot unavailable'
+        syncError = 'No persisted football-data.org snapshot is available. Run syncFootballData to load provider team, standings, and scorer data.'
+      }
+    } catch (error) {
+      dataSource = 'Oracle Database · provider snapshot unavailable'
+      syncError = `Stored football-data.org snapshot could not be loaded: ${error instanceof Error ? error.message : String(error)}`
+    }
   }
   if (repository === providerRepository && providerRepository.seasonYear !== null) {
     const imported = await mongo.getImportedMatches(providerRepository.seasonYear)
@@ -118,7 +137,9 @@ async function start() {
   app.use(cors({ origin: process.env.WEB_ORIGIN ?? 'http://localhost:5173' }))
   app.get('/health', (_request, response) => response.json({
     status: 'ok', storage: context.repository.mode,
-    source: context.repository.mode === 'provider-cache' ? context.providerRepository.source : context.dataSource,
+    source: context.providerRepository.lastSyncedAt
+      ? context.providerRepository.source
+      : context.repository.mode === 'provider-cache' ? context.providerRepository.source : context.dataSource,
     mongo: mongo.status, apiConfigured: provider.configured,
     lastSyncedAt: context.providerRepository.lastSyncedAt ?? context.lastSyncedAt,
     syncError: context.repository.mode === 'provider-cache' ? context.providerRepository.syncError : context.syncError,
@@ -127,13 +148,40 @@ async function start() {
   const httpServer = app.listen(apiPort, () => {
     console.log(`PitchIQ GraphQL API listening at http://localhost:${apiPort}/graphql`)
   })
-  const shutdown = async () => {
-    httpServer.close()
+  let shuttingDown = false
+  const shutdown = async (exitCode = 0) => {
+    if (shuttingDown) return
+    shuttingDown = true
+    process.exitCode = exitCode
+    if (httpServer.listening) {
+      await new Promise<void>((resolve, reject) => {
+        httpServer.close((error) => error ? reject(error) : resolve())
+      })
+    }
     await Promise.all([apollo.stop(), repository.close(), mongo.close()])
-    process.exit(0)
   }
-  process.on('SIGINT', () => void shutdown())
-  process.on('SIGTERM', () => void shutdown())
+  httpServer.on('error', (error: NodeJS.ErrnoException) => {
+    const reason = error.code === 'EADDRINUSE'
+      ? `port ${apiPort} is already in use. Stop the existing API process or set API_PORT to another available port.`
+      : `could not listen on port ${apiPort}: ${error.message}`
+    console.error(`PitchIQ API failed to start: ${reason}`)
+    void shutdown(1).catch((shutdownError: unknown) => {
+      console.error(`PitchIQ API cleanup failed: ${shutdownError instanceof Error ? shutdownError.message : String(shutdownError)}`)
+      process.exitCode = 1
+    })
+  })
+  process.on('SIGINT', () => {
+    void shutdown().catch((error: unknown) => {
+      console.error(`PitchIQ API shutdown failed: ${error instanceof Error ? error.message : String(error)}`)
+      process.exitCode = 1
+    })
+  })
+  process.on('SIGTERM', () => {
+    void shutdown().catch((error: unknown) => {
+      console.error(`PitchIQ API shutdown failed: ${error instanceof Error ? error.message : String(error)}`)
+      process.exitCode = 1
+    })
+  })
 }
 
 start().catch((error: unknown) => {

@@ -4,11 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "lint": "tsc -b --pretty false",
-    "preview": "vite preview"
+    "dev": "\"$NODE\" ../../node_modules/vite/bin/vite.js",
+    "build": "\"$NODE\" ../../node_modules/typescript/bin/tsc -b && \"$NODE\" ../../node_modules/vite/bin/vite.js build",
+    "test": "\"$NODE\" ../../node_modules/vitest/vitest.mjs run",
+    "lint": "\"$NODE\" ../../node_modules/typescript/bin/tsc -b --pretty false",
+    "preview": "\"$NODE\" ../../node_modules/vite/bin/vite.js preview"
   },
   "dependencies": {
     "@apollo/client": "^4.0.7",

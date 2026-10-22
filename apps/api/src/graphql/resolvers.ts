@@ -132,7 +132,9 @@ export function createResolvers() {
       },
       dataHealth: async (_: unknown, __: unknown, context: GraphContext) => ({
         storageMode: context.repository.mode,
-        source: context.repository.mode === 'provider-cache' ? context.providerRepository.source : context.dataSource,
+        source: context.providerRepository.lastSyncedAt
+          ? context.providerRepository.source
+          : context.repository.mode === 'provider-cache' ? context.providerRepository.source : context.dataSource,
         mongo: context.mongo.status,
         apiConfigured: context.provider.configured,
         lastSyncedAt: context.providerRepository.lastSyncedAt ?? context.lastSyncedAt,

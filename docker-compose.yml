@@ -12,6 +12,27 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+  oracle:
+    image: gvenzl/oracle-free:23.26.3-slim
+    profiles: ["oracle"]
+    restart: unless-stopped
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_SYS_PASSWORD:?Set ORACLE_SYS_PASSWORD in the root .env}
+      APP_USER: ${ORACLE_USER:-pitchiq}
+      APP_USER_PASSWORD: ${ORACLE_PASSWORD:?Set ORACLE_PASSWORD in the root .env}
+    ports:
+      - "127.0.0.1:1521:1521"
+    shm_size: 1gb
+    volumes:
+      - pitchiq-oracle:/opt/oracle/oradata
+      - ./database/migrations/001_initial_schema.sql:/opt/pitchiq/001_initial_schema.sql:ro
+      - ./database/oracle-init.sh:/container-entrypoint-initdb.d/001_pitchiq_schema.sh:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
 
 volumes:
   pitchiq-mongo:
+  pitchiq-oracle:
