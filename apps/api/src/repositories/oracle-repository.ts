@@ -88,6 +88,28 @@ export class OracleRepository implements FootballRepository {
     }
   }
 
+  async syncTeams(teams: Team[]): Promise<void> {
+    const connection = await this.connection()
+    try {
+      for (const team of teams) {
+        await connection.execute(
+          `MERGE INTO teams target
+           USING (SELECT :name AS name, :crest AS crest_url FROM dual) source
+           ON (LOWER(target.name) = LOWER(source.name))
+           WHEN MATCHED THEN UPDATE SET target.crest_url = COALESCE(source.crest_url, target.crest_url)
+           WHEN NOT MATCHED THEN INSERT (name, crest_url) VALUES (source.name, source.crest_url)`,
+          { name: team.name, crest: team.crest },
+        )
+      }
+      await connection.commit()
+    } catch (error) {
+      await connection.rollback()
+      throw new Error(`Oracle team synchronization failed; the transaction was rolled back: ${error instanceof Error ? error.message : String(error)}`)
+    } finally {
+      await connection.close()
+    }
+  }
+
   async importMatches(matches: CsvMatchInput[]): Promise<number> {
     return this.writeMatches(matches, false)
   }

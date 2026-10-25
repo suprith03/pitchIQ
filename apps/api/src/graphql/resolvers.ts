@@ -263,6 +263,9 @@ export function createResolvers() {
           context.providerRepository.loadSnapshot(snapshot, source)
           let imported = snapshot.matches.length
           if (context.oracle) {
+            await context.oracle.syncTeams(snapshot.teams.map((team) => ({
+              id: String(team.id), name: team.name, crest: team.crest ?? null,
+            })))
             const inputs = snapshot.matches.map((match) => {
               if (match.matchday === null) throw new Error(`Provider match ${match.id} has no matchday; refusing to invent one for Oracle.`)
               return {

@@ -107,6 +107,9 @@ async function start() {
       syncError = `Stored football-data.org snapshot could not be loaded: ${error instanceof Error ? error.message : String(error)}`
     }
   }
+  if (repository instanceof OracleRepository && providerRepository.lastSyncedAt) {
+    await repository.syncTeams(await providerRepository.getTeams())
+  }
   if (repository === providerRepository && providerRepository.seasonYear !== null) {
     const imported = await mongo.getImportedMatches(providerRepository.seasonYear)
     if (imported.length) {

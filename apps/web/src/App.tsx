@@ -242,7 +242,7 @@ function StatCard({ title, value, suffix, icon, tone, compact = false }: { title
   return <div className={`stat-card tone-${tone}`}><div className="stat-top"><span>{title}</span><span className="stat-icon">{icon}</span></div><div className={`stat-value ${compact ? 'small-value' : ''}`}>{value}</div><div className="stat-suffix">{suffix}</div></div>
 }
 
-function Panel({ title, subtitle, children, className = '', right }: { title: string; subtitle: string; children: ReactNode; className?: string; right?: ReactNode }) {
+function Panel({ title, subtitle, children, className = '', right }: { title: ReactNode; subtitle: string; children: ReactNode; className?: string; right?: ReactNode }) {
   return <section className={`panel ${className}`}><div className="panel-heading"><div><h2>{title}</h2><p>{subtitle}</p></div>{right}</div>{children}</section>
 }
 
@@ -259,7 +259,11 @@ function StandingsTable({ standings, changes }: { standings: Standing[]; changes
 }
 
 function Crest({ team }: { team: Team }) {
-  return team.crest ? <img className="team-crest" src={team.crest} alt="" onError={(event) => { event.currentTarget.style.display = 'none' }} /> : <span className="team-crest crest-placeholder">{team.name.slice(0, 1)}</span>
+  const [failed, setFailed] = useState(false)
+  if (!team.crest || failed) {
+    return <span className="team-crest crest-placeholder" aria-label={`${team.name} crest unavailable`}>{team.name.slice(0, 1)}</span>
+  }
+  return <img className="team-crest" src={team.crest} alt={`${team.name} crest`} onError={() => setFailed(true)} />
 }
 function FormDots({ form }: { form: string }) {
   return <span className="form-dots">{form.split('').map((result, index) => <i key={`${result}${index}`} className={`form-${result}`} title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'} />)}</span>
@@ -315,7 +319,7 @@ function TeamDNAPage({ teams }: { teams: Team[] }) {
   return <><PageHeading eyebrow="TEAM PROFILE" title="Team DNA" description="Understand the shape of a club: where they earn points and how they score." />
     <div className="toolbar"><label className="select-label"><Users size={15} /> Club <select value={activeId} onChange={(event) => setTeamId(event.target.value)}>{teams.map((team) => <option key={team.id} value={team.id}>{team.name}</option>)}</select></label>{loading && <span className="muted-copy">Loading team profile…</span>}</div>
     {error ? <ErrorState error={errorMessage(error)} /> : dna ? <div className="dna-grid">
-      <Panel title={dna.team.name} subtitle="Performance profile"><div className="dna-scoreline"><div><span>HOME RECORD</span><b>{dna.homePoints}<small> pts</small></b><small>{dna.homePlayed} matches</small></div><div className="dna-divider" /><div><span>AWAY RECORD</span><b>{dna.awayPoints}<small> pts</small></b><small>{dna.awayPlayed} matches</small></div></div>
+      <Panel title={<span className="panel-team-title"><Crest team={dna.team} />{dna.team.name}</span>} subtitle="Performance profile"><div className="dna-scoreline"><div><span>HOME RECORD</span><b>{dna.homePoints}<small> pts</small></b><small>{dna.homePlayed} matches</small></div><div className="dna-divider" /><div><span>AWAY RECORD</span><b>{dna.awayPoints}<small> pts</small></b><small>{dna.awayPlayed} matches</small></div></div>
         <div className="dna-metrics"><Metric label="Attack index" value={dna.attackIndex.toFixed(2)} suffix="goals / game" /><Metric label="Defence index" value={dna.defenceIndex.toFixed(2)} suffix="conceded / game" /><Metric label="Recent form" value={dna.form || '—'} suffix="last five" /></div><div className="form-large"><span>RECENT FORM</span><FormDots form={dna.form} /></div>
       </Panel>
       <Panel title="Goals per match" subtitle="Scoring and concession averages"><div className="chart-wrap dna-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={chart} layout="vertical" margin={{ top: 6, right: 16, left: 4, bottom: 4 }}><CartesianGrid stroke="#25313d" horizontal={false} /><XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#8795a4', fontSize: 11 }} /><YAxis type="category" dataKey="metric" axisLine={false} tickLine={false} tick={{ fill: '#bcc6d0', fontSize: 12 }} width={110} /><Tooltip contentStyle={tooltipStyle} /><Bar dataKey="value" name="Per match" fill="#7de3a0" radius={[0, 5, 5, 0]} /></BarChart></ResponsiveContainer></div><div className="mini-note">Indices use the team's actual finished-match records. No external or sample values are inferred.</div></Panel>
@@ -403,7 +407,7 @@ function SeasonPage() {
 
 function ScorersPage({ scorers, warnings }: { scorers: DashboardData['scorers']; warnings: string[] }) {
   return <>  <PageHeading eyebrow="PLAYER PERFORMANCE" title="Top scorers" description="Provider-reported goal totals when available for the selected season." />
-    <Panel title="Golden boot race" subtitle="Ranked by goals scored"><div className="table-scroll"><table className="data-table scorer-table"><thead><tr><th className="left"># / PLAYER</th><th className="left">CLUB</th><th>GOALS</th><th>PENALTIES</th></tr></thead><tbody>{scorers.map((scorer, index) => <tr key={`${scorer.player}-${scorer.team.id}`}><td className="club-cell"><span className={`position ${index < 3 ? 'qualified' : ''}`}>{String(index + 1).padStart(2, '0')}</span><span className="player-avatar">{scorer.player.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span><b>{scorer.player}</b></td><td className="left">{scorer.team.name}</td><td><b>{scorer.goals}</b></td><td>{scorer.penalties}</td></tr>)}</tbody></table>{!scorers.length && <EmptyState title="No scorer records available" detail={warnings.join(' ') || 'The provider returned no scorer totals for this season or API plan. No player statistics are invented.'} />}</div></Panel>
+    <Panel title="Golden boot race" subtitle="Ranked by goals scored"><div className="table-scroll scorer-table-scroll"><table className="data-table scorer-table"><thead><tr><th className="left"># / PLAYER</th><th className="left">CLUB</th><th>GOALS</th><th>PENALTIES</th></tr></thead><tbody>{scorers.map((scorer, index) => <tr key={`${scorer.player}-${scorer.team.id}`}><td className="club-cell"><span className={`position ${index < 3 ? 'qualified' : ''}`}>{String(index + 1).padStart(2, '0')}</span><span className="player-avatar" aria-hidden="true">{scorer.player.split(' ').map((part) => part[0]).join('').slice(0, 2)}</span><b>{scorer.player}</b></td><td className="left"><span className="club-cell scorer-club"><Crest team={scorer.team} /><b>{scorer.team.name}</b></span></td><td><b>{scorer.goals}</b></td><td>{scorer.penalties}</td></tr>)}</tbody></table>{!scorers.length && <EmptyState title="No scorer records available" detail={warnings.join(' ') || 'The provider returned no scorer totals for this season or API plan. No player statistics are invented.'} />}</div></Panel>
   </>
 }
 

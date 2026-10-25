@@ -10,7 +10,7 @@ const mock = {
     data: {
       standings: [{ position: 1, team: team('test-united', 'Test United'), played: 1, won: 1, drawn: 0, lost: 0, goalsFor: 2, goalsAgainst: 0, goalDifference: 2, points: 3, form: 'W' }],
       matches: [],
-      scorers: [],
+      scorers: [{ player: 'Test Striker', team: { ...team('example-city', 'Example City'), crest: 'https://example.test/crest.png' }, goals: 4, penalties: 1 }],
       teams: [team('test-united', 'Test United'), team('example-city', 'Example City')],
       dataHealth: {
         storageMode: 'provider-cache', source: 'football-data.org v4 · live', mongo: 'connected',
@@ -51,5 +51,17 @@ describe('PitchIQ dashboard interactions', () => {
     expect(await screen.findByRole('heading', { name: 'No league data available' })).toBeInTheDocument()
     expect(screen.getByText('Provider returned HTTP 503')).toBeInTheDocument()
     expect(screen.getByText(/No sample or fictional data is shown/)).toBeInTheDocument()
+  })
+
+  it('shows provider team crests alongside scorer records', async () => {
+    render(<MockedProvider mocks={[mock]}><App /></MockedProvider>)
+    expect(await screen.findByRole('heading', { name: 'League overview' })).toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: 'Top scorers' })[0]!)
+    expect(await screen.findByRole('heading', { name: 'Top scorers' })).toBeInTheDocument()
+    const crest = screen.getByAltText('Example City crest')
+    expect(crest).toHaveAttribute('src', 'https://example.test/crest.png')
+    expect(screen.getByText('Test Striker')).toBeInTheDocument()
+    fireEvent.error(crest)
+    expect(screen.getByLabelText('Example City crest unavailable')).toBeInTheDocument()
   })
 })
