@@ -17,6 +17,7 @@ See [docs/architecture.md](./docs/architecture.md) for system and entity relatio
 
 - Node.js 22.12+ and npm.
 - MongoDB Community 7+ (local or Docker Compose) for persistent snapshots and simulations.
+- Docker Compose and Colima on macOS to have `npm run dev` start the local database services automatically.
 - Oracle Database Free 23.5+ with a `FREEPDB1` PDB for Oracle-backed storage. Oracle is optional in `provider-cache` mode.
 - A football-data.org token with access to the Premier League endpoints/seasons you need.
 
@@ -33,17 +34,13 @@ Edit the root `.env` and set `FOOTBALL_DATA_API_TOKEN` to the token from your fo
 
 The `.env.example` uses `pitchiq` as the local Oracle application username and leaves the Oracle passwords blank. Supply strong local values for `ORACLE_PASSWORD` and `ORACLE_SYS_PASSWORD` only if using Oracle mode. Keep `.env` local; it is ignored by Git. Other service values, such as the MongoDB URI and API port, can also be configured there. Restart the API after changing environment values.
 
-Start MongoDB locally, or use Docker Compose where available:
-
-```sh
-docker-compose up -d mongodb
-```
-
-Then start both applications:
+Start both applications:
 
 ```sh
 npm run dev
 ```
+
+The development command starts Colima automatically on macOS if Docker is not already running, starts the database service(s) selected by `STORAGE_MODE`, and waits for them to become healthy before launching the API and frontend. In the default `provider-cache` mode it starts MongoDB; if Docker or Compose is unavailable, the app still runs but cannot persist data. In `oracle` mode it starts both MongoDB and Oracle, and reports a setup error instead of starting the API if those services are unavailable. For Oracle mode, configure the credentials documented below. Database containers and their data volumes remain available after VS Code closes; the next `npm run dev` starts the runtime and services again when needed.
 
 The frontend is served at `http://localhost:5173` and proxies `/graphql` and `/health` to the backend, avoiding browser CORS issues if Vite selects a different port. The API is also available directly at `http://localhost:4000/graphql` and `http://localhost:4000/health`. To run one process, use `npm run dev:api` or `npm run dev:web`.
 

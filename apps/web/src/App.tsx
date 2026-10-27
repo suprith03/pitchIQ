@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { gql } from '@apollo/client'
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react'
 import type { ChangeEvent, ReactNode } from 'react'
 import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, CircleHelp, Database,
   FileUp, Goal, LayoutDashboard, Menu, RefreshCw, Shield, SlidersHorizontal, Sparkles, Swords,
-  Trophy, Users, ChevronDown, X,
+  Trophy, Users, ChevronDown, X, Moon, Sun,
 } from 'lucide-react'
 import {
   Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
@@ -85,6 +85,7 @@ type SeasonData = { simulateSeason: Array<{ team: Team; averagePosition: number;
 type ImportData = { importCsv: { imported: number; skipped: number; message: string } }
 type BenchmarkData = { benchmark: { metrics: Array<{ database: string; query: string; iterations: number; totalMs: number; averageMs: number; minMs: number; maxMs: number }>; unavailable: string[] } }
 type PageId = 'overview' | 'table' | 'fixtures' | 'dna' | 'matchup' | 'whatif' | 'season' | 'scorers' | 'database'
+type Theme = 'light' | 'dark'
 
 const navigation: Array<{ id: PageId; label: string; icon: typeof Activity; group: string }> = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard, group: 'Workspace' },
@@ -104,10 +105,17 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Something went wrong. Please try again.'
 }
 
+function getInitialTheme(): Theme {
+  const savedTheme = window.localStorage?.getItem('pitchiq-theme')
+  if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme
+  return 'light'
+}
+
 export default function App() {
   const [page, setPage] = useState<PageId>('overview')
   const [menuOpen, setMenuOpen] = useState(false)
   const [notice, setNotice] = useState('')
+  const [theme, setTheme] = useState<Theme>(getInitialTheme)
   const { data, loading, error, refetch } = useQuery<DashboardData>(DASHBOARD_QUERY, { fetchPolicy: 'cache-and-network' })
   const [sync, syncState] = useMutation<SyncData>(SYNC, {
     onCompleted: (result) => {
@@ -121,6 +129,11 @@ export default function App() {
   const sourceIsLive = activeSource.includes('· live')
   const sourceIsCached = activeSource.includes('persisted MongoDB snapshot')
   const goTo = (next: PageId) => { setPage(next); setMenuOpen(false); setNotice('') }
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme
+    window.localStorage?.setItem('pitchiq-theme', theme)
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a1118' : '#f3f5f4')
+  }, [theme])
   return (
     <div className="app-shell">
       <aside className={`sidebar ${menuOpen ? 'sidebar-open' : ''}`}>
@@ -147,6 +160,11 @@ export default function App() {
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-separator">/</span><b>{activeLabel}</b></div>
           <div className="topbar-actions">
             <span className={`connection-pill ${data?.dataHealth.storageMode === 'oracle' || sourceIsLive ? 'online' : ''}`}><span className="connection-dot" />{data?.dataHealth.storageMode === 'oracle' ? 'Oracle connected' : sourceIsLive ? 'Live data' : sourceIsCached ? 'Cached data' : data?.dataHealth.apiConfigured ? 'Unavailable' : 'API not configured'}</span>
+            <button className={`theme-toggle ${theme}`} type="button" role="switch" aria-checked={theme === 'dark'} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+              <Sun className="theme-toggle-sun" size={14} aria-hidden="true" />
+              <Moon className="theme-toggle-moon" size={14} aria-hidden="true" />
+              <span className="theme-toggle-thumb"><span className="theme-toggle-thumb-icon">{theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}</span></span>
+            </button>
             <button className="icon-button" aria-label="Refresh data" title="Refresh data" onClick={() => { setNotice(''); void refetch() }}><RefreshCw size={17} /></button>
             <button className="sync-button" aria-label="Sync data" onClick={() => void sync()} disabled={!data?.dataHealth.apiConfigured || syncState.loading} title={data?.dataHealth.apiConfigured ? 'Sync current season from football-data.org' : 'Set FOOTBALL_DATA_API_TOKEN on the backend to enable sync'}>
               <RefreshCw size={15} className={syncState.loading ? 'spin' : ''} /> Sync data
@@ -160,6 +178,7 @@ export default function App() {
             <PageContent page={page} data={data} setNotice={setNotice} refetch={refetch} />
           ) : <EmptyState title="No data available" detail="Connect the GraphQL API and load a season dataset." />}
         </section>
+        <footer className="app-signature">@Suprith Singh</footer>
       </main>
     </div>
   )
@@ -199,7 +218,7 @@ function OverviewPage({ data }: { data: DashboardData }) {
   const totalGoals = completed.reduce((sum, match) => sum + (match.homeGoals ?? 0) + (match.awayGoals ?? 0), 0)
   const upcoming = data.matches.filter((match) => match.status !== 'FINISHED').slice(0, 4)
   const leader = data.standings[0]
-  const chartRows = data.standings.map((standing) => ({ team: standing.team.name.split(' ')[0], points: standing.points }))
+  const chartRows = data.standings.map((standing) => ({ team: standing.team.name, crest: standing.team.crest, points: standing.points }))
   const resultProfile = [
     { name: 'Home wins', value: completed.filter((match) => (match.homeGoals ?? 0) > (match.awayGoals ?? 0)).length },
     { name: 'Draws', value: completed.filter((match) => match.homeGoals === match.awayGoals).length },
@@ -216,7 +235,11 @@ function OverviewPage({ data }: { data: DashboardData }) {
     <div className="dashboard-grid">
       <Panel className="points-panel" title="Points race" subtitle="Current league points" right={<span className="chart-legend"><i /> Points</span>}>
         {chartRows.length ? <div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartRows} margin={{ top: 8, right: 8, left: -22, bottom: 0 }}>
-          <CartesianGrid stroke="#25313d" vertical={false} /><XAxis dataKey="team" axisLine={false} tickLine={false} tick={{ fill: '#8694a3', fontSize: 11 }} />
+          <CartesianGrid stroke="#25313d" vertical={false} /><XAxis dataKey="team" axisLine={false} tickLine={false} interval={0} height={34} tickMargin={5} tick={({ x, y, payload }) => {
+            const team = chartRows.find((row) => row.team === payload.value)
+            const size = chartRows.length > 17 ? 14 : chartRows.length > 12 ? 18 : 22
+            return team ? <PointsRaceTick x={x} y={y} name={team.team} crest={team.crest} size={size} /> : null
+          }} />
           <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#758393', fontSize: 11 }} /><Tooltip contentStyle={tooltipStyle} cursor={{ fill: '#ffffff0a' }} />
           <Bar dataKey="points" name="Points" fill="#7de3a0" radius={[5, 5, 0, 0]} maxBarSize={43} />
         </BarChart></ResponsiveContainer></div> : <EmptyState title="No table data yet" detail="Synchronize a Premier League season to see the points race." />}
@@ -264,6 +287,16 @@ function Crest({ team }: { team: Team }) {
     return <span className="team-crest crest-placeholder" aria-label={`${team.name} crest unavailable`}>{team.name.slice(0, 1)}</span>
   }
   return <img className="team-crest" src={team.crest} alt={`${team.name} crest`} onError={() => setFailed(true)} />
+}
+export function PointsRaceTick({ x, y, name, crest, size }: { x: number | string; y: number | string; name: string; crest: string | null; size: number }) {
+  const [failed, setFailed] = useState(false)
+  const initials = name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase()
+  return <g className="points-race-tick" transform={`translate(${x},${y})`} role="img" aria-label={`${name} crest`}>
+    <title>{name}</title>
+    {!crest || failed
+      ? <><circle cx="0" cy={size / 2} r={size / 2} /><text x="0" y={size / 2} dy="0.35em">{initials}</text></>
+      : <image href={crest} x={-size / 2} y="0" width={size} height={size} preserveAspectRatio="xMidYMid meet" onError={() => setFailed(true)} />}
+  </g>
 }
 function FormDots({ form }: { form: string }) {
   return <span className="form-dots">{form.split('').map((result, index) => <i key={`${result}${index}`} className={`form-${result}`} title={result === 'W' ? 'Win' : result === 'D' ? 'Draw' : 'Loss'} />)}</span>

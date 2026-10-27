@@ -12,6 +12,7 @@
   font-optical-sizing: auto;
   font-size: 14px;
   font-weight: 400;
+  color-scheme: dark;
   --bg: #0a1118;
   --sidebar: #0d151e;
   --panel: #111b25;
@@ -80,6 +81,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 button:disabled { cursor: not-allowed; opacity: .47; }
 .mobile-menu { display: none; }
 .page-content { max-width: 1550px; margin: auto; padding: 31px 34px 50px; }
+.app-signature { align-self: flex-end; margin: 0 34px 14px auto; color: #718091; font-size: 10px; font-weight: 600; letter-spacing: .2px; }
 .page-heading { min-height: 83px; margin: 0 0 22px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
 .eyebrow { color: #80d99c; font-size: 9px; font-weight: 750; letter-spacing: 1.25px; margin-bottom: 7px; }
 .page-heading h1 { margin: 0; font-size: 25px; font-weight: 680; letter-spacing: -.65px; line-height: 1.25; color: #f0f3f5; }
@@ -105,6 +107,8 @@ button:disabled { cursor: not-allowed; opacity: .47; }
 .chart-legend { color: #9aa8b5; font-size: 9px; display: inline-flex; gap: 6px; align-items: center; }
 .chart-legend i { width: 7px; height: 7px; border-radius: 2px; background: #7de3a0; }
 .chart-wrap { width: 100%; height: 202px; }
+.points-race-tick circle { fill: #253542; stroke: #425460; }
+.points-race-tick text { fill: #dce8df; font-size: 7px; font-weight: 700; text-anchor: middle; pointer-events: none; }
 .points-panel, .profile-panel { min-height: 290px; }
 .profile-panel { display: flex; flex-direction: column; }
 .donut-layout { display: flex; flex: 1; align-items: center; justify-content: center; gap: 16px; min-height: 178px; }
@@ -300,6 +304,19 @@ button:disabled { cursor: not-allowed; opacity: .47; }
 .notice-banner.sync-error-banner { border-color: #665638; background: #241f16; color: #e2cc93; }
 .notice-banner button { display: grid; place-items: center; border: 0; color: #a9c7ae; background: transparent; cursor: pointer; }
 .spin { animation: spin .8s linear infinite; }
+.theme-toggle { position: relative; display: inline-flex; align-items: center; justify-content: space-between; flex: 0 0 62px; width: 62px; height: 32px; padding: 0 7px; overflow: hidden; border: 1px solid #293642; border-radius: 999px; background: #18232d; color: #a9bac8; cursor: pointer; transition: background-color .42s ease, border-color .42s ease, box-shadow .42s ease; }
+.theme-toggle-sun, .theme-toggle-moon { position: relative; z-index: 1; transition: opacity .25s ease, transform .45s cubic-bezier(.2,.8,.2,1); }
+.theme-toggle-sun { color: #f0bf55; }
+.theme-toggle-moon { color: #9dc5ff; }
+.theme-toggle-thumb { position: absolute; z-index: 2; top: 3px; left: 3px; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #ffffff66; border-radius: 50%; background: linear-gradient(145deg, #fff, #e8eee9); color: #bb8525; box-shadow: 0 2px 8px #0003, 0 0 12px #fff3; transition: transform .48s cubic-bezier(.2,.85,.25,1.25), background .35s ease, color .35s ease, box-shadow .35s ease; }
+.theme-toggle-thumb-icon { display: grid; transition: transform .45s cubic-bezier(.2,.8,.2,1); }
+.theme-toggle.dark { border-color: #3b5068; background: #101b29; }
+.theme-toggle.dark .theme-toggle-thumb { transform: translateX(30px); border-color: #607da1; background: linear-gradient(145deg, #35527a, #1d3554); color: #d6e8ff; box-shadow: 0 2px 10px #0006, 0 0 15px #8bbaff4a; }
+.theme-toggle.dark .theme-toggle-thumb-icon { transform: rotate(-25deg); }
+.theme-toggle.light { border-color: #cbd9d0; background: #e8f0eb; color: #65796c; }
+.theme-toggle.dark .theme-toggle-sun { opacity: .48; transform: rotate(35deg) scale(.8); }
+.theme-toggle.light .theme-toggle-moon { opacity: .48; transform: rotate(-25deg) scale(.8); }
+.app-shell, .sidebar, .main-area, .topbar, .panel, .stat-card, .icon-button, .connection-pill, .season-select, .data-table tbody tr, .notice-banner, .toolbar input, .toolbar select { transition: background-color .32s ease, color .32s ease, border-color .32s ease, box-shadow .32s ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .mobile-scrim { display: none; }
 
@@ -360,10 +377,11 @@ button:disabled { cursor: not-allowed; opacity: .47; }
   .benchmark-card { min-width: 100%; }
 }
 
-:root {
+:root[data-theme="light"] {
   font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #17233b;
   background: #f3f5f4;
+  color-scheme: light;
   --bg: #f3f5f4;
   --sidebar: #101c35;
   --panel: #fff;
@@ -375,7 +393,6 @@ button:disabled { cursor: not-allowed; opacity: .47; }
   --subtle: #8490a0;
   --green: #158354;
   --green-dark: #e8f4ed;
-}
 
 body { background: var(--bg); }
 .sidebar { background: #101c35; border-right-color: #1b2a46; }
@@ -435,6 +452,8 @@ body { background: var(--bg); }
 .chart-legend { color: #647386; font-size: 10px; }
 .chart-legend i { background: #218453; }
 .chart-wrap { height: 218px; }
+.points-race-tick circle { fill: #f0f5f1; stroke: #dbe4de; }
+.points-race-tick text { fill: #32724e; }
 .points-panel, .profile-panel { min-height: 293px; }
 .donut-center b { color: #17243c; font-family: "Barlow Condensed", sans-serif; font-size: 28px; }
 .donut-center small { color: #7d8a99; }
@@ -515,9 +534,12 @@ body { background: var(--bg); }
 .benchmark-card > small, .benchmark-range { color: #758293; }
 .benchmark-card > strong { color: #176b43; font-family: "Barlow Condensed", sans-serif; font-size: 27px; }
 .unavailable-list { border-color: #eee1bf; background: #fff9ec; color: #806925; }
+}
 
 @media (max-width: 760px) {
-  .topbar { background: #fff; }
+  :root[data-theme="light"] .topbar { background: #fff; }
+  :root[data-theme="light"] .sync-button { width: 34px; min-height: 34px; flex: 0 0 34px; padding: 0; gap: 0; font-size: 0; }
+  :root[data-theme="light"] .sync-button svg { flex: 0 0 auto; }
   .page-content { padding-top: 24px; }
   .page-heading h1 { font-size: 31px; }
   .source-badge { max-width: 100%; }
@@ -536,4 +558,74 @@ body { background: var(--bg); }
   .scorer-club .team-crest { width: 21px; height: 21px; flex-basis: 21px; }
   .scorer-club { justify-content: center; }
   .scorer-club b { display: none; }
+}
+
+.main-area { display: flex; flex-direction: column; }
+.page-content { flex: 1; width: 100%; margin: 0 auto; }
+.app-signature { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+:root[data-theme="light"] .app-signature { color: #718091; }
+
+.brand { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 24px; letter-spacing: .15px; }
+.brand small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: 1.35px; }
+.season-select b { font-size: 12px; }
+.nav-label { font-size: 9px; letter-spacing: 1.25px; }
+.nav-item { min-height: 39px; font-size: 12px; }
+.nav-item.active { font-weight: 700; }
+.breadcrumb { font-size: 12px; }
+.breadcrumb b { font-weight: 700; }
+.connection-pill { font-size: 10px; }
+.sync-button, .secondary-button { font-size: 11px; }
+.eyebrow { font-size: 10px; letter-spacing: 1.5px; }
+.page-heading h1 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 36px; font-weight: 700; letter-spacing: .1px; line-height: 1.05; }
+.page-heading p { font-size: 12px; }
+.source-badge { font-size: 10px; line-height: 1.45; }
+.stat-top { font-size: 11px; }
+.stat-value { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 31px; font-weight: 700; letter-spacing: .2px; line-height: 1.05; }
+.stat-value.small-value { font-size: 21px; }
+.stat-suffix { font-size: 10px; }
+.panel-heading h2 { font-size: 14px; font-weight: 700; letter-spacing: -.15px; }
+.panel-heading p, .chart-legend, .legend-list > div, .mini-note, .panel-foot { font-size: 10px; }
+.donut-center b { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 28px; }
+.live-label { font-size: 9px; }
+.data-table th { font-size: 9px; letter-spacing: .7px; }
+.data-table td, .club-cell > b { font-size: 11px; }
+.club-cell > b { font-weight: 600; }
+.position { font-size: 9px; }
+.crest-placeholder { font-size: 11px; }
+.fixture-date b, .fixture-teams > div { font-size: 10px; }
+.fixture-date small, .fixture-score small { font-size: 9px; }
+.fixture-score b { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 15px; }
+.fixture-expanded .fixture-teams > div { font-size: 11px; }
+.dna-scoreline > div > b, .h2h-score > div > b { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; }
+.dna-scoreline > div > b { font-size: 34px; }
+.metric b { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 21px; }
+.h2h-score > div > b { font-size: 32px; }
+.player-avatar { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 12px; }
+.loading-state > span:last-child, .error-state > span { font-size: 11px; }
+.empty-state b { font-size: 11px; }
+.empty-state span { font-size: 9px; }
+.notice-banner, .season-explainer { font-size: 10px; }
+.benchmark-card > strong { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 27px; }
+
+.app-shell, .app-shell :not(.theme-toggle):not(.theme-toggle *) { transition-property: color, background-color, border-color, box-shadow, fill, stroke; transition-duration: 420ms; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+
+@media (max-width: 760px) {
+  .app-signature { margin-right: 14px; }
+  .page-heading h1 { font-size: 31px; }
+  .connection-pill { font-size: 9px; }
+  :root[data-theme="light"] .page-heading h1 { font-size: 31px; }
+  :root[data-theme="light"] .connection-pill { font-size: 9px; }
+}
+
+@media (max-width: 430px) {
+  .stat-top { font-size: 9px; }
+  .stat-suffix { font-size: 8px; }
+  .select-label { font-size: 9px; }
+  :root[data-theme="light"] .stat-top { font-size: 9px; }
+  :root[data-theme="light"] .stat-suffix { font-size: 8px; }
+  :root[data-theme="light"] .select-label { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

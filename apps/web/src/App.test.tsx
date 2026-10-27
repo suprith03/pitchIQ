@@ -1,14 +1,14 @@
 import { MockedProvider } from '@apollo/client/testing/react'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import App, { DASHBOARD_QUERY } from './App'
+import App, { DASHBOARD_QUERY, PointsRaceTick } from './App'
 
 const team = (id: string, name: string) => ({ id, name, crest: null })
 const mock = {
   request: { query: DASHBOARD_QUERY },
   result: {
     data: {
-      standings: [{ position: 1, team: team('test-united', 'Test United'), played: 1, won: 1, drawn: 0, lost: 0, goalsFor: 2, goalsAgainst: 0, goalDifference: 2, points: 3, form: 'W' }],
+      standings: [{ position: 1, team: { ...team('test-united', 'Test United'), crest: 'https://example.test/test-united.png' }, played: 1, won: 1, drawn: 0, lost: 0, goalsFor: 2, goalsAgainst: 0, goalDifference: 2, points: 3, form: 'W' }],
       matches: [],
       scorers: [{ player: 'Test Striker', team: { ...team('example-city', 'Example City'), crest: 'https://example.test/crest.png' }, goals: 4, penalties: 1 }],
       teams: [team('test-united', 'Test United'), team('example-city', 'Example City')],
@@ -63,5 +63,51 @@ describe('PitchIQ dashboard interactions', () => {
     expect(screen.getByText('Test Striker')).toBeInTheDocument()
     fireEvent.error(crest)
     expect(screen.getByLabelText('Example City crest unavailable')).toBeInTheDocument()
+  })
+
+  it('renders team crests on points race ticks and falls back to initials when unavailable', () => {
+    const { container } = render(<svg><PointsRaceTick x={10} y={20} name="Test United" crest="https://example.test/test-united.png" size={22} /></svg>)
+    const tick = within(container)
+    expect(tick.getByRole('img', { name: 'Test United crest' })).toBeInTheDocument()
+    const crest = container.querySelector('.points-race-tick image')
+    expect(crest).toHaveAttribute('href', 'https://example.test/test-united.png')
+    fireEvent.error(crest!)
+    expect(tick.getByText('TU')).toBeInTheDocument()
+  })
+
+  it('defaults to light, persists theme changes, and keeps the signature on each page', async () => {
+    const storedValues = new Map<string, string>()
+    const originalStorage = Object.getOwnPropertyDescriptor(window, 'localStorage')
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key: string) => storedValues.get(key) ?? null,
+        setItem: (key: string, value: string) => storedValues.set(key, value),
+        removeItem: (key: string) => storedValues.delete(key),
+      },
+    })
+    const { container, unmount } = render(<MockedProvider mocks={[mock]}><App /></MockedProvider>)
+    const app = within(container)
+    try {
+      const toggle = app.getByRole('switch', { name: 'Switch to dark theme' })
+      expect(await app.findByText('@Suprith Singh')).toBeInTheDocument()
+      expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+      fireEvent.click(toggle)
+      expect(toggle).toHaveAttribute('aria-checked', 'true')
+      expect(document.documentElement).toHaveAttribute('data-theme', 'dark')
+      expect(storedValues.get('pitchiq-theme')).toBe('dark')
+      fireEvent.click(toggle)
+      expect(toggle).toHaveAttribute('aria-checked', 'false')
+      expect(document.documentElement).toHaveAttribute('data-theme', 'light')
+      expect(storedValues.get('pitchiq-theme')).toBe('light')
+      fireEvent.click(app.getByRole('button', { name: 'League table' }))
+      expect(await app.findByRole('heading', { name: 'League table' })).toBeInTheDocument()
+      expect(app.getByText('@Suprith Singh')).toBeInTheDocument()
+    } finally {
+      unmount()
+      if (originalStorage) Object.defineProperty(window, 'localStorage', originalStorage)
+      else Reflect.deleteProperty(window, 'localStorage')
+      document.documentElement.dataset.theme = 'light'
+    }
   })
 })
