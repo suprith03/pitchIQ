@@ -1,6 +1,7 @@
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { gql } from '@apollo/client'
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client/react'
+import { flushSync } from 'react-dom'
 import type { ChangeEvent, ReactNode } from 'react'
 import {
   Activity, ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, CalendarDays, CircleHelp, Database,
@@ -160,7 +161,17 @@ export default function App() {
           <div className="breadcrumb"><span>Workspace</span><span className="crumb-separator">/</span><b>{activeLabel}</b></div>
           <div className="topbar-actions">
             <span className={`connection-pill ${data?.dataHealth.storageMode === 'oracle' || sourceIsLive ? 'online' : ''}`}><span className="connection-dot" />{data?.dataHealth.storageMode === 'oracle' ? 'Oracle connected' : sourceIsLive ? 'Live data' : sourceIsCached ? 'Cached data' : data?.dataHealth.apiConfigured ? 'Unavailable' : 'API not configured'}</span>
-            <button className={`theme-toggle ${theme}`} type="button" role="switch" aria-checked={theme === 'dark'} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}>
+            <button className={`theme-toggle ${theme}`} type="button" role="switch" aria-checked={theme === 'dark'} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} onClick={(event) => {
+              const nextTheme = theme === 'light' ? 'dark' : 'light'
+              const bounds = event.currentTarget.getBoundingClientRect()
+              document.documentElement.style.setProperty('--theme-origin-x', `${bounds.left + bounds.width / 2}px`)
+              document.documentElement.style.setProperty('--theme-origin-y', `${bounds.top + bounds.height / 2}px`)
+              if (typeof document.startViewTransition === 'function') {
+                document.startViewTransition(() => flushSync(() => setTheme(nextTheme)))
+              } else {
+                setTheme(nextTheme)
+              }
+            }}>
               <Sun className="theme-toggle-sun" size={14} aria-hidden="true" />
               <Moon className="theme-toggle-moon" size={14} aria-hidden="true" />
               <span className="theme-toggle-thumb"><span className="theme-toggle-thumb-icon">{theme === 'light' ? <Sun size={14} /> : <Moon size={14} />}</span></span>
@@ -423,7 +434,7 @@ function SeasonPage() {
     onCompleted: (result) => { setPredictions(result.simulateSeason); setSimulationError('') },
     onError: (error) => { setPredictions(null); setSimulationError(errorMessage(error)) },
   })
-  const chart = predictions?.map((prediction) => ({ team: prediction.team.name, probability: +(prediction.topFourProbability * 100).toFixed(1) })) ?? []
+  const chart = predictions?.map((prediction) => ({ team: prediction.team.name, crest: prediction.team.crest, probability: +(prediction.topFourProbability * 100).toFixed(1) })) ?? []
   return <>
     <PageHeading eyebrow="PREDICTIONS · NOT RESULTS" title="Season forecast" description="Explore a probabilistic finish projection based on observed scoring rates and a Poisson goal model." />
     <div className="season-explainer"><Sparkles size={16} /><span>Each remaining fixture is sampled from Poisson goal distributions. Attack and defence rates are smoothed toward the league average; home advantage is modest. This is an illustrative prediction, not a guarantee.</span></div>
@@ -431,7 +442,11 @@ function SeasonPage() {
       <div className="benchmark-controls"><label className="select-label">Simulation runs <select value={iterations} onChange={(event) => setIterations(Number(event.target.value))}><option value={250}>250 runs</option><option value={1000}>1,000 runs</option><option value={5000}>5,000 runs</option><option value={10000}>10,000 runs</option></select></label><button className="primary-button" disabled={state.loading} onClick={() => { setPredictions(null); void runSimulation({ variables: { iterations } }) }}><Sparkles size={16} />{state.loading ? 'Simulating…' : 'Run forecast'}</button></div>
       {simulationError && <ErrorState error={simulationError} />}
       {predictions ? <div className="season-results">
-        <div className="forecast-chart"><div className="section-caption">TOP-FOUR PROBABILITY</div><div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={chart} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}><CartesianGrid stroke="#25313d" vertical={false} /><XAxis dataKey="team" axisLine={false} tickLine={false} tick={{ fill: '#9aa7b5', fontSize: 11 }} /><YAxis domain={[0, 100]} unit="%" axisLine={false} tickLine={false} tick={{ fill: '#758393', fontSize: 11 }} /><Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value}%`, 'Top four']} /><Bar dataKey="probability" name="Top four chance" fill="#7de3a0" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div></div>
+        <div className="forecast-chart"><div className="section-caption">TOP-FOUR PROBABILITY</div><div className="chart-wrap"><ResponsiveContainer width="100%" height="100%"><BarChart data={chart} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}><CartesianGrid stroke="#25313d" vertical={false} /><XAxis dataKey="team" axisLine={false} tickLine={false} interval={0} height={38} tickMargin={5} tick={({ x, y, payload }) => {
+          const team = chart.find((row) => row.team === payload.value)
+          const size = chart.length > 17 ? 14 : chart.length > 12 ? 18 : 22
+          return team ? <PointsRaceTick x={x} y={y} name={team.team} crest={team.crest} size={size} /> : null
+        }} /><YAxis domain={[0, 100]} unit="%" axisLine={false} tickLine={false} tick={{ fill: '#758393', fontSize: 11 }} /><Tooltip contentStyle={tooltipStyle} formatter={(value) => [`${value}%`, 'Top four']} /><Bar dataKey="probability" name="Top four chance" fill="#7de3a0" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></div></div>
         <div className="table-scroll"><table className="data-table"><thead><tr><th className="left">PROJECTED CLUB</th><th>AVG POSITION</th><th>TOP FOUR</th><th>EXPECTED PTS</th></tr></thead><tbody>{predictions.map((row, index) => <tr key={row.team.id}><td className="club-cell"><span className={`position ${index < 4 ? 'qualified' : ''}`}>{String(index + 1).padStart(2, '0')}</span><Crest team={row.team} /><b>{row.team.name}</b></td><td>{row.averagePosition.toFixed(2)}</td><td><b>{(row.topFourProbability * 100).toFixed(1)}%</b></td><td>{row.expectedPoints.toFixed(1)}</td></tr>)}</tbody></table></div>
       </div> : <div className="benchmark-empty"><div><Sparkles size={20} /></div><span>Run a forecast to estimate final positions and top-four probabilities. No projected values are fabricated or saved as official standings.</span></div>}
     </Panel>

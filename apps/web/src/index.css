@@ -24,10 +24,12 @@
   --subtle: #627181;
   --green: #7de3a0;
   --green-dark: #123322;
+  transition: color .42s cubic-bezier(.22, 1, .36, 1), background-color .42s cubic-bezier(.22, 1, .36, 1);
 }
 
 * { box-sizing: border-box; }
 body { min-width: 320px; min-height: 100vh; margin: 0; }
+body { background: var(--bg); transition: background-color .42s cubic-bezier(.22, 1, .36, 1); }
 button, input, select { font: inherit; }
 button { color: inherit; }
 button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid #7de3a0; outline-offset: 2px; }
@@ -378,7 +380,7 @@ button:disabled { cursor: not-allowed; opacity: .47; }
 }
 
 :root[data-theme="light"] {
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #17233b;
   background: #f3f5f4;
   color-scheme: light;
@@ -394,7 +396,6 @@ button:disabled { cursor: not-allowed; opacity: .47; }
   --green: #158354;
   --green-dark: #e8f4ed;
 
-body { background: var(--bg); }
 .sidebar { background: #101c35; border-right-color: #1b2a46; }
 .brand { color: #fff; font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 24px; letter-spacing: .15px; }
 .brand-mark { border-radius: 8px; background: #d8f1e2; color: #126942; }
@@ -566,7 +567,7 @@ body { background: var(--bg); }
 :root[data-theme="light"] .app-signature { color: #718091; }
 
 .brand { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 24px; letter-spacing: .15px; }
-.brand small { font-family: Inter, ui-sans-serif, system-ui, sans-serif; letter-spacing: 1.35px; }
+.brand small { font-family: Inter, sans-serif; letter-spacing: 1.35px; }
 .season-select b { font-size: 12px; }
 .nav-label { font-size: 9px; letter-spacing: 1.25px; }
 .nav-item { min-height: 39px; font-size: 12px; }
@@ -588,8 +589,8 @@ body { background: var(--bg); }
 .donut-center b { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 28px; }
 .live-label { font-size: 9px; }
 .data-table th { font-size: 9px; letter-spacing: .7px; }
-.data-table td, .club-cell > b { font-size: 11px; }
-.club-cell > b { font-weight: 600; }
+.data-table td { font-size: 11px; }
+.data-table td.club-cell > b { font-size: 11px; font-weight: 600; }
 .position { font-size: 9px; }
 .crest-placeholder { font-size: 11px; }
 .fixture-date b, .fixture-teams > div { font-size: 10px; }
@@ -607,7 +608,10 @@ body { background: var(--bg); }
 .notice-banner, .season-explainer { font-size: 10px; }
 .benchmark-card > strong { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-size: 27px; }
 
-.app-shell, .app-shell :not(.theme-toggle):not(.theme-toggle *) { transition-property: color, background-color, border-color, box-shadow, fill, stroke; transition-duration: 420ms; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+::view-transition-old(root) { animation: theme-fade-out .3s ease both; }
+::view-transition-new(root) { animation: theme-reveal .72s cubic-bezier(.22, 1, .36, 1) both; clip-path: circle(0 at var(--theme-origin-x, 50vw) var(--theme-origin-y, 50vh)); }
+@keyframes theme-fade-out { to { opacity: 0; } }
+@keyframes theme-reveal { to { clip-path: circle(150vmax at var(--theme-origin-x, 50vw) var(--theme-origin-y, 50vh)); } }
 
 @media (max-width: 760px) {
   .app-signature { margin-right: 14px; }
@@ -628,4 +632,5 @@ body { background: var(--bg); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .01ms !important; }
 }
